@@ -30,19 +30,12 @@ def teme2llh(pos, epoch):
     jdut1 = _julian_date(epoch)
 
     gmst = _gstime(jdut1)
+
     rot = [nmp.cos(gmst), nmp.sin(gmst), 0, -nmp.sin(gmst), nmp.cos(gmst), 0, 0, 0, 1]
     rot = nmp.reshape(rot, (3, 3))
+    r_ecef = nmp.matmul(rot,pos)
 
-    if len(pos[1]) > 1:
-        for n in range(len(pos[1])):
-            print(pos[n])
-            r_ecef = nmp.matmul(rot,pos[n])
-            lat, lon, alt = _ecef2lla(r_ecef)
-
-    else:
-        r_ecef = nmp.matmul(rot,pos)
-        lat, lon, alt = _ecef2lla(r_ecef)
-        return lat, lon, alt
+    lat, lon, alt = _ecef2lla(r_ecef)
 
     return lat, lon, alt
 
@@ -67,7 +60,6 @@ def _gstime(jd):
         #gmst += 2*pi
     return gmst
 
-
 def _ecef2lla(p):
     x, y, z = p
     # earth radius
@@ -76,7 +68,6 @@ def _ecef2lla(p):
     e = 0.081819190842622
     small = 1e-10
     n = 0
-
 
     lon = nmp.arctan2(y, x)*180/pi
     # + is east, - is west

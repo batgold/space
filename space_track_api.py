@@ -32,7 +32,6 @@ def get_tle(session):
     tle = tle.splitlines()
 
     sat_num = int(len(tle) / 3)
-    print('total satellites found: ', sat_num)
 
     with open('geo_tle', 'wb') as f:
         pickle.dump(tle, f)
