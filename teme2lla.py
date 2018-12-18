@@ -4,7 +4,7 @@ from datetime import datetime
 
 pi = nmp.pi
 
-def teme2llh(pos_teme, epoch):
+def teme2lla(pos_teme, epoch):
 
     epoch_jd = _julian_date(epoch)
 

@@ -17,7 +17,7 @@ def sgp4(tle, epoch):
     pos, __ = satrec.propagate(
             epoch.year, epoch.month, epoch.day, epoch.hour, epoch.minute, epoch.second)
 
-    return pos, line0, satrec.epoch
+    return pos, line0, epoch
 
 def _target_tle(tle_set, target):
     # specify a single satellite for tle
@@ -27,9 +27,3 @@ def _target_tle(tle_set, target):
             tle = tle_set[n*3:n*3 + 3]
             return tle
 
-def _target_lon(name_set, target_name):
-    # get the index of target from input name
-    for n, name in enumerate(name_set):
-        if target_name in name:
-            return n
-    target_lon = llh[target_ndx][1]

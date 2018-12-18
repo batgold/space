@@ -3,15 +3,19 @@ import numpy as nmp
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
-def graph(name, lat, lon, alt, start_lon, stop_lon, target_name):
+def graph(name_list, lat, lon, alt, name_target):
+
     fig = plt.figure(1)
     ax = fig.add_subplot(111, projection='3d')
 
-    for n, item in enumerate(name):
+    for n, item in enumerate(name_list):
+
         if 'R/B' in item:
             s = ax.scatter(lon[n], lat[n], zs=alt[n], s=20, c='r', marker='^')
-        elif target_name in item:
-            s = ax.scatter(lon[n], lat[n], zs=alt[n], s=25, c='g', alpha=0.5)
+
+        elif name_target in item:
+            s = ax.scatter(lon[n], lat[n], zs=alt[n], s=40, c='C1', marker='s', alpha=0.5)
+
         else:
             s = ax.scatter(lon[n], lat[n], zs=alt[n], s=20, c='C0', alpha=0.5)
 
@@ -30,10 +34,3 @@ def graph(name, lat, lon, alt, start_lon, stop_lon, target_name):
 
     plt.tight_layout(pad=0)
     plt.show()
-    #y = nmp.zeros(len(lon))
-    #plt.plot(lon, y, '+')
-
-    #plt.show()
-
-
-

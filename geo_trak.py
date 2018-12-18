@@ -2,19 +2,20 @@
 import sys
 import pickle
 import space_track_api as api
-import tle2teme as t2t
-import teme2llh as t2g
+import tle2teme
+import teme2lla
 import graph as grf
 from datetime import datetime
 
 #check out:
 #pyorbital
 
-def _target_lon(name_list, target_name, llh):
+def _target_lon(name_list, target_name, lla_list):
     # get the lon of target from input name
+
     for n, name in enumerate(name_list):
         if target_name in name:
-            return llh[n][1]
+            return name, lla_list[n][1]
 
 def main():
 
@@ -48,7 +49,7 @@ def main():
 
     for n in range(0, len(tle_list), 3):
         tle = tle_list[n:n+3]
-        pos, name, epoch = t2t.sgp4(tle, epoch)
+        pos, name, epoch = tle2teme.sgp4(tle, epoch)
 
         pos_list.append(pos)
         name_list.append(name)
@@ -58,42 +59,46 @@ def main():
     #  ---------------- convert pos/vel to lat/lon -----------------
 
     lla_list = []
-    for n, pos in enumerate(xyzs):
-        if epoch_start == '-tle':
-            epoch = epochs_tle[n]
 
-        tmp = t2g.teme2llh(pos, epoch)
-        llh.append(tmp)
+    for n, pos in enumerate(pos_list):
+        if epoch_start == '-tle':
+            epoch = epoch_list[n]
+
+        lla = teme2lla.teme2lla(pos, epoch)
+        lla_list.append(lla)
 
 
     #  --------------- parse out objects in region -----------------
-    lat = []
+
+    lat_list = []
     lon_list = []
-    alt = []
-    tmp = []
+    alt_list = []
+    tmp_list = []
 
-    target_lon = _target_lon(name_list, name_target, llh)
+    id_target, lon_target = _target_lon(name_list, name_target, lla_list)
 
-    for n, item in enumerate(llh):
+    for n, item in enumerate(lla_list):
         lon = item[1]
-        if (lon >= lon_start and lon <= target_lon and target_lon > lon_start) \
-        or (lon <= lon_start and lon >= target_lon and target_lon < lon_start):
-            lat.append(item[0])
-            lon_list.append(lon)
-            alt.append(item[2])
-            tmp.append(name_list[n])
-    name = tmp
+        if (lon >= lon_start and lon <= lon_target and lon_target > lon_start) \
+        or (lon <= lon_start and lon >= lon_target and lon_target < lon_start):
+            lat_list.append(item[0])
+            lon_list.append(item[1])
+            alt_list.append(item[2])
+            tmp_list.append(name_list[n])
+
+    name_list = tmp_list
 
 
     #  ----------------------- print results -----------------------
 
     print(len(lon_list), ' objects found.\n')
-    print('target lon:', target_lon)
+    print(id_target[2:], ' lon:', lon_target)
 
 
     #  ----------------------- graph results -----------------------
 
-    grf.graph(name, lat, lon_list, alt, lon_start, target_lon, name_target)
+    grf.graph(
+            name_list, lat_list, lon_list, alt_list, name_target)
 
     if tle_file == '-l':
         api.close(session)

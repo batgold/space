@@ -26,7 +26,8 @@ def close(session):
 
 def get_tle(session):
     #tle_q = query_url + 'class/tle_latest/ORDINAL/1/EPOCH/>now-30/MEAN_MOTION/0.99--1.01/ECCENTRICITY/<0.01/format/3le'
-    tle_q = query_url + 'class/tle_latest/ORDINAL/1/MEAN_MOTION/0.99--1.01/ECCENTRICITY/<0.01/format/3le'
+    #tle_q = query_url + 'class/tle_latest/ORDINAL/1/MEAN_MOTION/0.99--1.01/ECCENTRICITY/<0.01/format/3le'
+    tle_q = 'https://www.space-track.org/basicspacedata/query/class/tle_latest/ORDINAL/1/APOGEE/%3E35000/PERIGEE/%3E35000/format/3le'
 
     tle = session.get(tle_q).text
     tle = tle.splitlines()
