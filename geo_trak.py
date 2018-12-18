@@ -1,14 +1,15 @@
 #!/usr/bin/python
+import argparse
 import sys
 import pickle
-import space_track_api as api
-import tle2teme
-import teme2lla
 import graph as grf
-from datetime import datetime
+from satellite import Satellite
+import coord_trans
+import space_track_api as api
+from datetime import datetime, timedelta
+from tqdm import tqdm
 
-#check out:
-#pyorbital
+#TODO: check out pyorbital
 
 def _target_lon(name_list, target_name, lla_list):
     # get the lon of target from input name
@@ -17,96 +18,91 @@ def _target_lon(name_list, target_name, lla_list):
         if target_name in name:
             return name, lla_list[n][1]
 
+def _datetime_type(arg_datetime):
+    return datetime.strptime(arg_datetime, '%x-%X')
+
 def main():
+
+    #  --------------- get user inputs ----------------
+
+    parser = argparse.ArgumentParser()
+    t1_arg = parser.add_mutually_exclusive_group()
+    t2_arg = parser.add_mutually_exclusive_group()
+    parser.add_argument('-u', '--update', action='store_true', help='update TLE')
+    parser.add_argument('lon0', type=float, help='starting longitude')
+    parser.add_argument('targ', type=str, help='target satellite name')
+    t1_arg.add_argument('-n', '--now', action='store_true', help='start date = now')
+    t1_arg.add_argument('-t1', type=_datetime_type, nargs=1, help='start date mm/dd/yy-hh:mm:ss')
+    t2_arg.add_argument('-t2', type=_datetime_type, help='stop date mm/dd/yy-hh:mm:ss')
+    t2_arg.add_argument('-hr', type=float, nargs=1, help='relative time from start, hr')
+
+    args = parser.parse_args()
 
     #  --------------- get tle from space_track.org ----------------
 
-    if tle_file == '-l':
+    if args.update:
         session = api.login()
         tle_list = api.get_tle(session)
-
     else:
         with open('geo.tle', 'rb') as f:
             tle_list = pickle.load(f)
 
-
     #  ----------------------- request epoch -----------------------
 
-    if epoch_start == '-now':
+    if args.now:
         epoch = datetime.utcnow()
-    elif epoch_start == '-tle':
-        epoch = False
     else:
-        #TODO: get input datetime
-        return None
+        #TODO: accept datetime input
+        epoch = False
+
+    if args.hr:
+        epoch_end = epoch + timedelta(hours=args.hr[0])
+    else:
+        epoch_end = args.t2.day
+
+    lon_start = args.lon0
+    name_target = args.targ
 
 
-    #  ------------------- convert tle to pos/vel ------------------
+    #  ------------------- build satellite list --------------------
 
-    pos_list = []
-    name_list = []
-    epoch_list = []
+    tmp_list = []
+    sat_list = [Satellite(epoch) for n in range(0, len(tle_list), 3)]
 
-    for n in range(0, len(tle_list), 3):
-        tle = tle_list[n:n+3]
-        pos, name, epoch = tle2teme.sgp4(tle, epoch)
+    for n, sat in enumerate(tqdm(sat_list, desc='Loading Satellites')):
+        sat.load_tle(tle_list[n*3:n*3+3])
+        sat.get_lla()
 
-        pos_list.append(pos)
-        name_list.append(name)
-        epoch_list.append(epoch)
-
-
-    #  ---------------- convert pos/vel to lat/lon -----------------
-
-    lla_list = []
-
-    for n, pos in enumerate(pos_list):
-        if epoch_start == '-tle':
-            epoch = epoch_list[n]
-
-        lla = teme2lla.teme2lla(pos, epoch)
-        lla_list.append(lla)
+        if name_target in sat.name:
+            sat_target = sat
 
 
     #  --------------- parse out objects in region -----------------
 
-    lat_list = []
-    lon_list = []
-    alt_list = []
-    tmp_list = []
+    for n, sat in enumerate(tqdm(sat_list, desc='Checking Satellites')):
+        # check if sat longitude is outside bounds
+        if (sat.lon >= lon_start and sat.lon <= sat_target.lon and sat_target.lon > lon_start) \
+        or (sat.lon <= lon_start and sat.lon >= sat_target.lon and sat_target.lon < lon_start):
+            tmp_list.append(sat)
 
-    id_target, lon_target = _target_lon(name_list, name_target, lla_list)
-
-    for n, item in enumerate(lla_list):
-        lon = item[1]
-        if (lon >= lon_start and lon <= lon_target and lon_target > lon_start) \
-        or (lon <= lon_start and lon >= lon_target and lon_target < lon_start):
-            lat_list.append(item[0])
-            lon_list.append(item[1])
-            alt_list.append(item[2])
-            tmp_list.append(name_list[n])
-
-    name_list = tmp_list
+    sat_list = tmp_list
 
 
     #  ----------------------- print results -----------------------
 
-    print(len(lon_list), ' objects found.\n')
-    print(id_target[2:], ' lon:', lon_target)
+    print('\r')
+    print('epoch start: ', epoch, '\r')
+    print('epoch end: ', epoch_end, '\n')
+    print(len(sat_list), ' objects found.\n')
+    print(sat_target.name[2:], ' lon:', sat_target.lon, '\n')
+
+    grf.graph(sat_list, sat_target, lon_start)
 
 
-    #  ----------------------- graph results -----------------------
+    #  ----------------------- close session -----------------------
 
-    grf.graph(
-            name_list, lat_list, lon_list, alt_list, name_target)
-
-    if tle_file == '-l':
+    if args.update:
         api.close(session)
 
 if __name__ == '__main__':
-    tle_file = sys.argv[1]
-    lon_start = float(sys.argv[2])
-    name_target = sys.argv[3]
-    epoch_start = sys.argv[4]
-
     main()
