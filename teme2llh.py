@@ -1,9 +1,23 @@
 #!/usr/bin/python
 import numpy as nmp
 from datetime import datetime
-from sgp4.earth_gravity import wgs84
 
 pi = nmp.pi
+
+def teme2llh(pos_teme, epoch):
+
+    epoch_jd = _julian_date(epoch)
+
+    gmst = _gmst(epoch_jd)
+
+    rot = [nmp.cos(gmst), nmp.sin(gmst), 0, -nmp.sin(gmst), nmp.cos(gmst), 0, 0, 0, 1]
+    rot = nmp.reshape(rot, (3, 3))
+
+    pos_ecef = nmp.matmul(rot, pos_teme)
+
+    lat, lon, alt = _ecef2lla(pos_ecef)
+
+    return lat, lon, alt
 
 def _julian_date(epoch):
     # calculate Julian day, from 4713 bc
@@ -25,21 +39,8 @@ def _julian_date(epoch):
     jd =  d + x2 + x3 + x4 - 1524.5 + s
     return jd
 
-def teme2llh(pos, epoch):
-
-    jdut1 = _julian_date(epoch)
-
-    gmst = _gstime(jdut1)
-
-    rot = [nmp.cos(gmst), nmp.sin(gmst), 0, -nmp.sin(gmst), nmp.cos(gmst), 0, 0, 0, 1]
-    rot = nmp.reshape(rot, (3, 3))
-    r_ecef = nmp.matmul(rot,pos)
-
-    lat, lon, alt = _ecef2lla(r_ecef)
-
-    return lat, lon, alt
-
-def _gstime(jd):
+def _gmst(jd):
+    # Calculate Greenwich Mean Sidereal Time
     # julian data at 2000: 2451545.0
     # this is the reference date for the conversion equation below.
     jd2000 = _julian_date(datetime(2000,1,1,12))
@@ -56,23 +57,24 @@ def _gstime(jd):
     # bring back to [0:2pi]
     gmst = nmp.mod(gmst_rad, 2*pi)
 
-    #if gmst < 0:
-        #gmst += 2*pi
+    if gmst < 0:
+        gmst += 2*pi
+
     return gmst
 
-def _ecef2lla(p):
-    x, y, z = p
+def _ecef2lla(pos):
+    # Convert from ECEF to Lat, Lon, Alt
+
+    x, y, z = pos
     # earth radius
-    a = wgs84.radiusearthkm
+    a = 6378.137
     # earth eccentricity
     e = 0.081819190842622
     small = 1e-10
     n = 0
 
-    lon = nmp.arctan2(y, x)*180/pi
     # + is east, - is west
-    if lon > 180:
-        lon -= 180
+    lon = nmp.arctan2(y, x)
 
     lat_delta = 100
     lat = nmp.arctan2(z, nmp.sqrt(x*x + y*y))
@@ -87,8 +89,7 @@ def _ecef2lla(p):
         print('latitude calculation did not converge.\n')
 
     alt = nmp.sqrt(x*x + y*y)/nmp.cos(lat) - a/nmp.sqrt(1 - e*e*nmp.sin(lat)**2)
-
     lat *= 180/pi
+    lon *= 180/pi
+
     return lat, lon, alt
-
-

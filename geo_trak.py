@@ -1,62 +1,107 @@
 #!/usr/bin/python
-from datetime import datetime
+import sys
 import pickle
-import numpy as nmp
 import space_track_api as api
 import tle2teme as t2t
 import teme2llh as t2g
 import graph as grf
+from datetime import datetime
 
 #check out:
 #pyorbital
 
-#  ----------------------- request epoch -----------------------
-#TODO: ask for future or past date
-epoch = datetime.utcnow()
+def _target_lon(name_list, target_name, llh):
+    # get the lon of target from input name
+    for n, name in enumerate(name_list):
+        if target_name in name:
+            return llh[n][1]
 
-#  --------------- get tle from space_track.org ----------------
+def main():
 
-session = api.login()
-#with open('geo_tle', 'rb') as f:
-    #tle_set = pickle.load(f)
+    #  --------------- get tle from space_track.org ----------------
 
-tle_set = api.get_tle(session)
+    if tle_file == '-l':
+        session = api.login()
+        tle_list = api.get_tle(session)
 
-
-#  ------------------- convert tle to pos/vel ------------------
-
-name = []
-pos = []
-#for n, item in enumerate(tle_set[825:921:3]):
-for n, item in enumerate(tle_set[0::3]):
-    tle = tle_set[n*3+1:n*3+3]
-    name.append(item)
-    pos.append(t2t.sgp4(tle, epoch))
+    else:
+        with open('geo.tle', 'rb') as f:
+            tle_list = pickle.load(f)
 
 
-#  ---------------- convert pos/vel to lat/lon -----------------
+    #  ----------------------- request epoch -----------------------
 
-lat = []
-lon = []
-alt = []
-for n, item in enumerate(pos):
-    lla = t2g.teme2llh(item, epoch)
-    lat.append(lla[0])
-    lon.append(lla[1])
-    alt.append(lla[2])
+    if epoch_start == '-now':
+        epoch = datetime.utcnow()
+    elif epoch_start == '-tle':
+        epoch = False
+    else:
+        #TODO: get input datetime
+        return None
 
 
-#  ---------------- print results -----------------
+    #  ------------------- convert tle to pos/vel ------------------
 
-print(len(tle_set)/3, ' objects found.\n')
-#for n in range(len(pos)):
-    #print('\n', name[n])
-    #print('lat: ', lat[n])
-    #print('lon: ', lon[n])
-    #print('alt: ', alt[n])
+    pos_list = []
+    name_list = []
+    epoch_list = []
 
-#  ---------------- graph results -----------------
+    for n in range(0, len(tle_list), 3):
+        tle = tle_list[n:n+3]
+        pos, name, epoch = t2t.sgp4(tle, epoch)
 
-grf.graph(name, lat, lon, alt)
+        pos_list.append(pos)
+        name_list.append(name)
+        epoch_list.append(epoch)
 
-api.close(session)
+
+    #  ---------------- convert pos/vel to lat/lon -----------------
+
+    lla_list = []
+    for n, pos in enumerate(xyzs):
+        if epoch_start == '-tle':
+            epoch = epochs_tle[n]
+
+        tmp = t2g.teme2llh(pos, epoch)
+        llh.append(tmp)
+
+
+    #  --------------- parse out objects in region -----------------
+    lat = []
+    lon_list = []
+    alt = []
+    tmp = []
+
+    target_lon = _target_lon(name_list, name_target, llh)
+
+    for n, item in enumerate(llh):
+        lon = item[1]
+        if (lon >= lon_start and lon <= target_lon and target_lon > lon_start) \
+        or (lon <= lon_start and lon >= target_lon and target_lon < lon_start):
+            lat.append(item[0])
+            lon_list.append(lon)
+            alt.append(item[2])
+            tmp.append(name_list[n])
+    name = tmp
+
+
+    #  ----------------------- print results -----------------------
+
+    print(len(lon_list), ' objects found.\n')
+    print('target lon:', target_lon)
+
+
+    #  ----------------------- graph results -----------------------
+
+    grf.graph(name, lat, lon_list, alt, lon_start, target_lon, name_target)
+
+    if tle_file == '-l':
+        api.close(session)
+
+if __name__ == '__main__':
+    tle_file = sys.argv[1]
+    lon_start = float(sys.argv[2])
+    name_target = sys.argv[3]
+    epoch_start = sys.argv[4]
+
+    main()

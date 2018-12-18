@@ -33,12 +33,12 @@ def get_tle(session):
 
     sat_num = int(len(tle) / 3)
 
-    with open('geo_tle', 'wb') as f:
+    with open('geo.tle', 'wb') as f:
         pickle.dump(tle, f)
 
     return tle
 
-def geo_catalog():
+def __geo_catalog():
     cat_q = query_url + 'class/satcat/PERIOD/1430--1450/CURRENT/Y/DECAY/null-val/format/json'
     cat = session.get(cat_q).json()
 
