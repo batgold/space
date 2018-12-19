@@ -7,6 +7,7 @@ from satellite import Satellite
 import coord_trans
 import space_track_api as api
 from datetime import datetime, timedelta
+import numpy as nmp
 from tqdm import tqdm
 
 #TODO: check out pyorbital
@@ -34,7 +35,7 @@ def main():
     t1_arg.add_argument('-n', '--now', action='store_true', help='start date = now')
     t1_arg.add_argument('-t1', type=_datetime_type, nargs=1, help='start date mm/dd/yy-hh:mm:ss')
     t2_arg.add_argument('-t2', type=_datetime_type, help='stop date mm/dd/yy-hh:mm:ss')
-    t2_arg.add_argument('-hr', type=float, nargs=1, help='relative time from start, hr')
+    t2_arg.add_argument('-hr', type=int, nargs=1, help='relative time from start, hr')
 
     args = parser.parse_args()
 
@@ -55,8 +56,10 @@ def main():
         #TODO: accept datetime input
         epoch = False
 
+    #TODO: calc # hours from T1 to T2
     if args.hr:
         epoch_end = epoch + timedelta(hours=args.hr[0])
+        num_epochs = args.hr[0]
     else:
         epoch_end = args.t2.day
 
@@ -67,11 +70,11 @@ def main():
     #  ------------------- build satellite list --------------------
 
     tmp_list = []
-    sat_list = [Satellite(epoch) for n in range(0, len(tle_list), 3)]
+    sat_list = [Satellite(epoch, num_epochs) for n in range(0, len(tle_list), 3)]
 
     for n, sat in enumerate(tqdm(sat_list, desc='Loading Satellites')):
         sat.load_tle(tle_list[n*3:n*3+3])
-        sat.get_lla()
+        sat.get_lla(0)
 
         if name_target in sat.name:
             sat_target = sat
@@ -81,12 +84,37 @@ def main():
 
     for n, sat in enumerate(tqdm(sat_list, desc='Checking Satellites')):
         # check if sat longitude is outside bounds
-        if (sat.lon >= lon_start and sat.lon <= sat_target.lon and sat_target.lon > lon_start) \
-        or (sat.lon <= lon_start and sat.lon >= sat_target.lon and sat_target.lon < lon_start):
+        lon = sat.lon[0]
+        target_lon = sat_target.lon[0]
+
+        #if (sat.lon >= lon_start and sat.lon <= sat_target.lon and sat_target.lon > lon_start) \
+        #or (sat.lon <= lon_start and sat.lon >= sat_target.lon and sat_target.lon < lon_start):
+            #tmp_list.append(sat)
+        if (lon >= lon_start and lon <= target_lon and target_lon > lon_start) \
+        or (lon <= lon_start and lon >= target_lon and target_lon < lon_start):
             tmp_list.append(sat)
 
     sat_list = tmp_list
 
+
+    #  ------------------- calculate all epochs --------------------
+
+    for n, sat in enumerate(tqdm(sat_list, desc='Computing Motion')):
+        sat.get_motion()
+
+
+    #  ----------------------- reformat data -----------------------
+
+    data = nmp.zeros((3, num_epochs, len(sat_list)))
+    #name = nmp.zeros((num_epochs, len(sat_list)), dtype=str)
+
+    name = []
+    for n, sat in enumerate(sat_list):
+        name.append(sat.name[2:])
+        for m in range(0, num_epochs):
+            data[0][m][n] = sat.lat[m]
+            data[1][m][n] = sat.lon[m]
+            data[2][m][n] = sat.alt[m]
 
     #  ----------------------- print results -----------------------
 
@@ -94,9 +122,9 @@ def main():
     print('epoch start: ', epoch, '\r')
     print('epoch end: ', epoch_end, '\n')
     print(len(sat_list), ' objects found.\n')
-    print(sat_target.name[2:], ' lon:', sat_target.lon, '\n')
+    print(sat_target.name[2:], ' lon:', sat_target.lon[0], '\n')
 
-    grf.graph(sat_list, sat_target, lon_start)
+    grf.graph(sat_list, sat_target, lon_start, data, num_epochs)
 
 
     #  ----------------------- close session -----------------------
