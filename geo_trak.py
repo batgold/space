@@ -82,7 +82,7 @@ def main():
 
     #  --------------- parse out objects in region -----------------
 
-    for n, sat in enumerate(tqdm(sat_list, desc='Checking Satellites')):
+    for n, sat in enumerate(sat_list):
         # check if sat longitude is outside bounds
         lon = sat.lon[0]
         target_lon = sat_target.lon[0]
@@ -108,9 +108,9 @@ def main():
     data = nmp.zeros((3, num_epochs, len(sat_list)))
     #name = nmp.zeros((num_epochs, len(sat_list)), dtype=str)
 
-    name = []
+    #name = []
     for n, sat in enumerate(sat_list):
-        name.append(sat.name[2:])
+        #name.append(sat.name[2:])
         for m in range(0, num_epochs):
             data[0][m][n] = sat.lat[m]
             data[1][m][n] = sat.lon[m]
@@ -124,7 +124,8 @@ def main():
     print(len(sat_list), ' objects found.\n')
     print(sat_target.name[2:], ' lon:', sat_target.lon[0], '\n')
 
-    grf.graph(sat_list, sat_target, lon_start, data, num_epochs)
+    #grf.graph(sat_list, sat_target, lon_start, data, num_epochs)
+    grf.graph(data, num_epochs)
 
 
     #  ----------------------- close session -----------------------
