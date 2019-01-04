@@ -16,8 +16,7 @@ from tqdm import tqdm
 def main():
     inputs = read_input()
     x = calc_orbits(inputs)
-    #output(x)
-
+    output(inputs, x)
 
 def read_input():
     inputs = {}
@@ -40,7 +39,7 @@ def read_input():
     t2_arg.add_argument(
         '-t2', type=_datetime_type, help='stop date mm/dd/yy-hh:mm:ss')
     t2_arg.add_argument(
-        '-tr', type=_time_type, nargs=1, help='relative time from start, hh:mm:ss')
+        '-tr', nargs=1, help='relative time from start, ddd:hh')
 
     args = parser.parse_args()
 
@@ -49,6 +48,7 @@ def read_input():
     if args.update:
         session = api.login()
         tle_list = api.get_tle(session)
+        api.close(session)
     else:
         with open('geo.tle', 'rb') as f:
             tle_list = pickle.load(f)
@@ -65,12 +65,10 @@ def read_input():
 
     # end time, t2
     if args.tr:
-        h = args.tr[0].hour
-        m = args.tr[0].minute
-        s = args.tr[0].second
+        d, h = [int(x) for x in args.tr[0].split(':')]
 
         #datetime.timedelta([d,] [sec,] [microsec,] [msec,] [min,] [hr,] [week])
-        epoch2 = epoch1 + timedelta(0,s,0,0,m,h)
+        epoch2 = epoch1 + timedelta(d,0,0,0,0,h)
     else:
         epoch2 = args.t2
 
@@ -83,7 +81,6 @@ def read_input():
     inputs['target_name'] = args.targ
 
     return inputs
-
 
 def calc_orbits(inputs):
 
@@ -137,46 +134,31 @@ def calc_orbits(inputs):
         sat.get_motion()
 
 
+    #  ----------------------- Add RSV -----------------------
+    #rsv = Satellite(epoch1, epoch2)
+    #rsv.load_rsv(lon0, sat_target.lon[0])
+    sat_list.append(Satellite(epoch1, epoch2, [lon0, sat_target.lon[0]]))
+    #rsv = sat_list[-1]
+    #rsv.load_rsv(lon0, sat_target.lon[0])
+
     #  ----------------------- reformat data -----------------------
 
     frame_cnt = sat_list[0].sim_cnt
-    frame_list = [GraphFrame(sat_list) for n in range(0, frame_cnt)]
+    frame_list = [GraphFrame(sat_list) for n in range(frame_cnt)]
 
     for n, frame in enumerate(tqdm(frame_list, desc='Building Frames')):
         frame.load_data(n)
 
-    grf.graph(frame_list)
+    return frame_list
 
-
-
-    sys.exit()
-    data = nmp.zeros((3, sim_cnt, len(sat_list)))
-    #name = nmp.zeros((num_epochs, len(sat_list)), dtype=str)
-
-    #name = []
-    for n, sat in enumerate(sat_list):
-        #name.append(sat.name[2:])
-        for m in range(0, sim_cnt):
-            data[0][m][n] = sat.lat[m]
-            data[1][m][n] = sat.lon[m]
-            data[2][m][n] = sat.alt[m]
+def output(inputs, x):
 
     #  ----------------------- print results -----------------------
-
     print('\r')
-    print('epoch start: ', epoch, '\r')
-    print('epoch end: ', epoch_end, '\n')
-    print(len(sat_list), ' objects found.\n')
-    print(sat_target.name[2:], ' lon:', sat_target.lon[0], '\n')
+    print('epoch start: ', inputs['epoch1'], '\r')
+    print('epoch end: ', inputs['epoch2'], '\n')
 
-    #grf.graph(sat_list, sat_target, lon0, data, num_epochs)
-    grf.graph(data, num_epochs)
-
-
-    #  ----------------------- close session -----------------------
-
-    if args.update:
-        api.close(session)
+    grf.graph(x)
 
 def _target_lon(name_list, target_name, lla_list):
     # get the lon of target from input name
@@ -187,9 +169,6 @@ def _target_lon(name_list, target_name, lla_list):
 
 def _datetime_type(arg_datetime):
     return datetime.strptime(arg_datetime, '%x-%X')
-
-def _time_type(arg_time):
-    return datetime.strptime(arg_time, '%X')
 
 if __name__ == '__main__':
     main()

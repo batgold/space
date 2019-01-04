@@ -87,9 +87,6 @@ def _graphC(sat_list, target, lon_start, data, num_epochs):
 #
 #        ax.text(sat.lon+0.1, sat.lat+0.1, sat.alt+0.1, '%s'%(sat.name[2:]), size=6, zorder=1)
 
-    ax.set_xlabel(r'Longitude, $\circ$E')
-    ax.set_ylabel('Latitude, deg')
-    ax.set_zlabel('Altitude, km')
 
 
     #ani = animation.FuncAnimation(fig, update, num_epochs, fargs=(dots, data, text, title), interval=300, blit=False)
@@ -97,29 +94,27 @@ def _graphC(sat_list, target, lon_start, data, num_epochs):
     #ani.save('animation.gif', writer='imagemagick')
 
     #plt.tight_layout(pad=0)
-    plt.show()
+    #plt.show()
+    pass
 
 def graph(frame_list):
 
     fig = plt.figure()
+    fig.set_size_inches(10, 8, True)
     ax = fig.add_subplot(111, projection='3d')
-    ax.set_xlim3d(-3,13)
-    ax.set_ylim3d(150, 167)
-    ax.set_zlim3d(35600,36100)
 
     frame_cnt = len(frame_list)
 
     ani = animation.FuncAnimation(fig, update_graph, frame_cnt,
-            fargs=(frame_list, ax, frame_cnt), interval=300)
+            fargs=(frame_list, ax, frame_cnt), interval=600)
 
     ax.xaxis.pane.fill = False
     ax.yaxis.pane.fill = False
     ax.zaxis.pane.fill = False
 
-
     plt.tight_layout(pad=0)
-    plt.show()
-    #ani.save('orb.gif', writer='imagemagick', fps=10)
+    #plt.show()
+    ani.save('orb3.gif', writer='imagemagick', fps=10, dpi=128)
 
 def update_graph(f, frame_list, ax, cnt):
 
@@ -132,6 +127,13 @@ def update_graph(f, frame_list, ax, cnt):
 
         #WORKING
         ax.scatter(x, y, z, s=s, c=c, marker=m, alpha=0.5)
-        ax.text(x+0.1, y+0.1, z+0.1, '%s'%(name), size=6, zorder=1)
-        ax.text(-0,155,36000,'%s / %s'%(f, cnt-1), size=20)
+        ax.text(x+0.1, y+0.1, z+0.1, '%s'%(name), size=5, zorder=1)
+        ax.text(0,155,36000,'%s / %s'%(f, cnt-1), size=20)
 
+        ax.set_xlabel('Latitude, deg')
+        ax.set_ylabel('Longitude, $\circ$E')
+        ax.set_zlabel('Altitude, km')
+
+        ax.set_xlim3d(-3,13)
+        ax.set_ylim3d(150, 167)
+        ax.set_zlim3d(35600,36100)

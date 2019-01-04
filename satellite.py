@@ -5,7 +5,7 @@ from datetime import timedelta
 
 class Satellite():
 
-    def __init__(self, epoch1, epoch2):
+    def __init__(self, epoch1, epoch2, rsv=False):
         self.epoch1 = epoch1
         self.epoch2 = epoch2
         self.type = None
@@ -15,6 +15,10 @@ class Satellite():
         self.lat = nmp.zeros(self.sim_cnt)
         self.lon = nmp.zeros(self.sim_cnt)
         self.alt = nmp.zeros(self.sim_cnt)
+
+        if rsv:
+            self.load_rsv(rsv[0], rsv[1])
+            pass
 
     def load_tle(self, tle):
         """Convert TLE parameters to Lat/Lon"""
@@ -32,12 +36,23 @@ class Satellite():
     def get_motion(self):
         """Get Position at each Epoch"""
 
-        for n in range(0, self.sim_cnt):
-            self.epochX = self.epoch1 + timedelta(seconds=n*self.sim_factor*10)
+        for n in range(self.sim_cnt):
+            self.epochX = self.epoch1 + timedelta(seconds=n*10**self.sim_factor)
 
             self.epoch = self.epochX
             self._get_pos()
             self._get_lla(n)
+
+    def load_rsv(self, lon1, lon2):
+        self.name = '0 RSV'
+        self.type = 'RSV'
+        self.vel = 4/86400                      # deg/second
+        time_increment = 10**self.sim_factor    # seconds
+
+        for n in range(self.sim_cnt):
+            self.lon[n] = 150 + n * self.vel * time_increment
+            self.lat[n] = 0
+            self.alt[n] = 35800 + 100
 
     def _get_pos(self):
         """Convert TLE to Postion & Velocity"""
@@ -56,7 +71,7 @@ class Satellite():
         epoch_delta = (self.epoch2 - self.epoch1).total_seconds()
 
         n = 0
-        while epoch_delta > 100:      # cut sim_cnt to under 100
+        while epoch_delta > 300:      # cut sim_cnt to under 100
             epoch_delta = nmp.floor(epoch_delta / 10)
             n += 1
 
@@ -88,10 +103,18 @@ class GraphFrame():
                 self.size.append(30)
                 self.color.append('r')
                 self.marker.append('^')
+            elif sat.type == 'RSV':
+                self.size.append(60)
+                self.color.append('b')
+                self.marker.append('s')
+            elif sat.type == 'target':
+                self.size.append(40)
+                self.color.append('C2')
+                self.marker.append('o')
             else:
-                self.size.append(20)
+                self.size.append(16)
                 self.color.append('C0')
-                self.marker.append(u'o')
+                self.marker.append('o')
 
     def get_params(self, n):
         return [self.lat[n],
@@ -101,4 +124,3 @@ class GraphFrame():
                 self.color[n],
                 self.marker[n],
                 self.name[n]]
-
