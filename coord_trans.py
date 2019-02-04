@@ -9,35 +9,18 @@ pi = nmp.pi
 def sgp4(tle1, tle2, epoch):
     # extract from TLE: pos, vel in TEME frame
     # return TLE epoch to gauge pos/vel errors
-
     satrec = twoline2rv(tle1, tle2, wgs84)
-
     pos, vel = satrec.propagate(
             epoch.year, epoch.month, epoch.day, epoch.hour, epoch.minute, epoch.second)
-
     return pos, vel, satrec.epoch
 
-def _target_tle(tle_set, target):
-    # specify a single satellite for tle
-    line0 = tle_set[0::3]
-    for n, name in enumerate(line0):
-        if name == '0 ' + target:
-            tle = tle_set[n*3:n*3 + 3]
-            return tle
-
 def teme2lla(pos_teme, epoch):
-
     epoch_jd = _julian_date(epoch)
-
     gmst = _gmst(epoch_jd)
-
     rot = [nmp.cos(gmst), nmp.sin(gmst), 0, -nmp.sin(gmst), nmp.cos(gmst), 0, 0, 0, 1]
     rot = nmp.reshape(rot, (3, 3))
-
     pos_ecef = nmp.matmul(rot, pos_teme)
-
     lat, lon, alt = _ecef2lla(pos_ecef)
-
     return lat, lon, alt
 
 def _julian_date(epoch):

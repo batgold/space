@@ -160,13 +160,6 @@ def output(inputs, x):
 
     grf.graph(x)
 
-def _target_lon(name_list, target_name, lla_list):
-    # get the lon of target from input name
-
-    for n, name in enumerate(name_list):
-        if target_name in name:
-            return name, lla_list[n][1]
-
 def _datetime_type(arg_datetime):
     return datetime.strptime(arg_datetime, '%x-%X')
 

@@ -113,22 +113,24 @@ def graph(frame_list):
     ax.zaxis.pane.fill = False
 
     plt.tight_layout(pad=0)
-    #plt.show()
-    ani.save('orb3.gif', writer='imagemagick', fps=10, dpi=128)
+    plt.show()
+    #ani.save('orb3.gif', writer='imagemagick', fps=10, dpi=128)
 
 def update_graph(f, frame_list, ax, cnt):
 
     ax.clear()
     f = nmp.mod(f, cnt)
     frame = frame_list[f]
+    dt = frame.dt/3600
 
     for n in range(len(frame.marker)):
         x, y, z, s, c, m, name = frame.get_params(n)
 
         #WORKING
-        ax.scatter(x, y, z, s=s, c=c, marker=m, alpha=0.5)
+        ax.scatter(x, y, z, s=s, c=c, marker=m)
         ax.text(x+0.1, y+0.1, z+0.1, '%s'%(name), size=5, zorder=1)
-        ax.text(0,155,36000,'%s / %s'%(f, cnt-1), size=20)
+        ax.text(0,155,36250,'Mission Time: %.2f hr'%(f*dt), size=20)
+        #ax.text(0,155,36000,'%s / %s'%(f, cnt-1), size=20)
 
         ax.set_xlabel('Latitude, deg')
         ax.set_ylabel('Longitude, $\circ$E')

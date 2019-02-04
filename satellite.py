@@ -12,6 +12,7 @@ class Satellite():
 
         self._calc_simtime()
 
+        self.dt = 10**self.sim_factor
         self.lat = nmp.zeros(self.sim_cnt)
         self.lon = nmp.zeros(self.sim_cnt)
         self.alt = nmp.zeros(self.sim_cnt)
@@ -37,7 +38,7 @@ class Satellite():
         """Get Position at each Epoch"""
 
         for n in range(self.sim_cnt):
-            self.epochX = self.epoch1 + timedelta(seconds=n*10**self.sim_factor)
+            self.epochX = self.epoch1 + timedelta(seconds=n*self.dt)
 
             self.epoch = self.epochX
             self._get_pos()
@@ -71,7 +72,7 @@ class Satellite():
         epoch_delta = (self.epoch2 - self.epoch1).total_seconds()
 
         n = 0
-        while epoch_delta > 300:      # cut sim_cnt to under 100
+        while epoch_delta > 800:      # cut sim_cnt to under 300
             epoch_delta = nmp.floor(epoch_delta / 10)
             n += 1
 
@@ -82,11 +83,12 @@ class GraphFrame():
 
     def __init__(self, sat_list):
         self.sat_list = sat_list
-        self.name = []
+        self.dt = self.sat_list[0].dt
         self.lat = []
         self.lon = []
         self.alt = []
         self.size = []
+        self.name = []
         self.color = []
         self.marker = []
 
@@ -108,6 +110,7 @@ class GraphFrame():
                 self.color.append('b')
                 self.marker.append('s')
             elif sat.type == 'target':
+                self.name[-1] = 'RSO-1'
                 self.size.append(40)
                 self.color.append('C2')
                 self.marker.append('o')
