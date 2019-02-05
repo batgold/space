@@ -1,22 +1,20 @@
 #!/usr/bin/python
-import argparse
-import sys
 import pickle
+import argparse
+import coord_trans
 import graph as grf
+import numpy as nmp
+import space_track_api as api
+from tqdm import tqdm
+from datetime import datetime, timedelta
 from satellite import Satellite
 from satellite import GraphFrame
-import coord_trans
-import space_track_api as api
-from datetime import datetime, timedelta
-import numpy as nmp
-from tqdm import tqdm
 
 #TODO: check out pyorbital
 
 def main():
     inputs = read_input()
-    x = calc_orbits(inputs)
-    output(inputs, x)
+    calc_orbits(inputs)
 
 def read_input():
     inputs = {}
@@ -127,19 +125,21 @@ def calc_orbits(inputs):
 
     sat_list = tmp_list     # only sats in region of interest
 
+    #  ----------------------- Add RSV -----------------------
+
+    rsgs_dir = nmp.sign(lon2-lon0)
+    sat_list.append(Satellite(epoch1, epoch2, lon0, rsgs_dir))
+
 
     #  ------------------- calculate all epochs --------------------
 
-    for n, sat in enumerate(tqdm(sat_list, desc='Computing Motion')):
+    for sat in tqdm(sat_list[:-1], desc='Computing Motion'):
+        #if sat.type != 'RSGS':
         sat.get_motion()
+        sat.get_range(sat_list[-1])
 
+    #  ----------------------- calculate range -----------------------
 
-    #  ----------------------- Add RSV -----------------------
-    #rsv = Satellite(epoch1, epoch2)
-    #rsv.load_rsv(lon0, sat_target.lon[0])
-    sat_list.append(Satellite(epoch1, epoch2, [lon0, sat_target.lon[0]]))
-    #rsv = sat_list[-1]
-    #rsv.load_rsv(lon0, sat_target.lon[0])
 
     #  ----------------------- reformat data -----------------------
 
@@ -149,16 +149,9 @@ def calc_orbits(inputs):
     for n, frame in enumerate(tqdm(frame_list, desc='Building Frames')):
         frame.load_data(n)
 
-    return frame_list
+    #  ----------------------- GRAPH -----------------------
 
-def output(inputs, x):
-
-    #  ----------------------- print results -----------------------
-    print('\r')
-    print('epoch start: ', inputs['epoch1'], '\r')
-    print('epoch end: ', inputs['epoch2'], '\n')
-
-    grf.graph(x)
+    grf.graph(frame_list, lon0, lon2)
 
 def _datetime_type(arg_datetime):
     return datetime.strptime(arg_datetime, '%x-%X')

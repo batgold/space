@@ -20,8 +20,8 @@ def teme2lla(pos_teme, epoch):
     rot = [nmp.cos(gmst), nmp.sin(gmst), 0, -nmp.sin(gmst), nmp.cos(gmst), 0, 0, 0, 1]
     rot = nmp.reshape(rot, (3, 3))
     pos_ecef = nmp.matmul(rot, pos_teme)
-    lat, lon, alt = _ecef2lla(pos_ecef)
-    return lat, lon, alt
+    lat, lon, alt, x, y, z= _ecef2lla(pos_ecef)
+    return lat, lon, alt, x, y, z
 
 def _julian_date(epoch):
     # calculate Julian day, from 4713 bc
@@ -96,4 +96,22 @@ def _ecef2lla(pos):
     lat *= 180/pi
     lon *= 180/pi
 
-    return lat, lon, alt
+    return lat, lon, alt, x, y, z
+
+def lla2ecef(lat, lon, alt):
+
+    # earth radius
+    a = 6378.137
+    # earth eccentricity
+    e = 0.081819190842622
+
+    lat = lat*pi/180
+    lon = lon*pi/180
+
+    rn = a / nmp.sqrt(1- e*e*nmp.sin(lat)*nmp.sin(lat))
+
+    x = (rn + alt) * nmp.cos(lat)*nmp.cos(lon)
+    y = (rn + alt) * nmp.cos(lat)*nmp.sin(lon)
+    z = ((1-e*e)*rn + alt) * nmp.sin(lat)
+
+    return x, y, z
