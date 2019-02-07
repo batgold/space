@@ -2,13 +2,14 @@
 import pickle
 import argparse
 import coord_trans
-import graph as grf
 import numpy as nmp
 import space_track_api as api
 from tqdm import tqdm
+from graph import GraphFrame
+from graph import Graph
 from datetime import datetime, timedelta
 from satellite import Satellite
-from satellite import GraphFrame
+from satellite import RSGS
 
 #TODO: check out pyorbital
 
@@ -47,8 +48,10 @@ def read_input():
         session = api.login()
         tle_list = api.get_tle(session)
         api.close(session)
+        with open('tle/geo.tle', 'wb') as f:
+            pickle.dump(tle_list, f)
     else:
-        with open('geo.tle', 'rb') as f:
+        with open('tle/geo.tle', 'rb') as f:
             tle_list = pickle.load(f)
 
     inputs['tle_list'] = tle_list
@@ -81,7 +84,6 @@ def read_input():
     return inputs
 
 def calc_orbits(inputs):
-
     # Epoch 0 is pulled from the TLE; gives the most accurate orbit
     # Epoch 1 is the start time of the simulation
     # Epoch 2 is the end time of the simulation
@@ -92,9 +94,7 @@ def calc_orbits(inputs):
     epoch1 = inputs['epoch1']
     epoch2 = inputs['epoch2']
 
-
     #  ------------------- build satellite list --------------------
-
     sat_list = [Satellite(epoch1, epoch2) for n in range(0, len(tle_list), 3)]
 
     for n, sat in enumerate(tqdm(sat_list, desc='Loading Satellites')):
@@ -105,19 +105,20 @@ def calc_orbits(inputs):
             sat.type = 'target'
             sat_target = sat
 
-
     #  --------------- parse out objects in region -----------------
-
     #TODO: account for sats initially out of region
 
     # lon0 is the global starting point; defined by user
     # lon1 is the tracked satellite's longitude
     # lon2 is the global ending point; target's longitude
 
+    lon2 = sat_target.lon[0]
+    lon0 = lon0 - nmp.sign(lon0)*2      # Add +/-2deg to analysis
+    lon2 = lon2 + nmp.sign(lon2)*2
+
     tmp_list = []
     for n, sat in enumerate(sat_list):
         lon1 = sat.lon[0]
-        lon2 = sat_target.lon[0]
 
         if (lon1 >= lon0 and lon1 <= lon2 and lon2 > lon0) \
         or (lon1 <= lon0 and lon1 >= lon2 and lon2 < lon0):
@@ -125,24 +126,17 @@ def calc_orbits(inputs):
 
     sat_list = tmp_list     # only sats in region of interest
 
-    #  ----------------------- Add RSV -----------------------
-
-    rsgs_dir = nmp.sign(lon2-lon0)
-    sat_list.append(Satellite(epoch1, epoch2, lon0, rsgs_dir))
-
+    #  ----------------------- Add RSGS -----------------------
+    rsgs = RSGS(epoch1, epoch2)
+    rsgs.set_params(lon0, lon2)
+    sat_list.append(rsgs)
 
     #  ------------------- calculate all epochs --------------------
-
     for sat in tqdm(sat_list[:-1], desc='Computing Motion'):
-        #if sat.type != 'RSGS':
         sat.get_motion()
-        sat.get_range(sat_list[-1])
+        sat.get_range(rsgs)
 
-    #  ----------------------- calculate range -----------------------
-
-
-    #  ----------------------- reformat data -----------------------
-
+    #  -------------------- calculate all frames -------------------
     frame_cnt = sat_list[0].sim_cnt
     frame_list = [GraphFrame(sat_list) for n in range(frame_cnt)]
 
@@ -150,8 +144,8 @@ def calc_orbits(inputs):
         frame.load_data(n)
 
     #  ----------------------- GRAPH -----------------------
-
-    grf.graph(frame_list, lon0, lon2)
+    grf = Graph(frame_list, lon0, lon2, epoch1)
+    grf.run()
 
 def _datetime_type(arg_datetime):
     return datetime.strptime(arg_datetime, '%x-%X')
