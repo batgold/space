@@ -22,6 +22,7 @@ class Graph():
         ax = fig.add_subplot(gs[0], projection='3d')
         ax2 = fig.add_subplot(gs[-1])
         plt.axis('off')
+        plt.tight_layout(pad=0)
         ax.xaxis.pane.fill = False
         ax.yaxis.pane.fill = False
         ax.zaxis.pane.fill = False
@@ -35,7 +36,6 @@ class Graph():
                 frames=self.frame_cnt,
                 interval=600)
 
-        plt.tight_layout(pad=0)
         plt.show()
         #ani.save('orb3.gif', writer='imagemagick', fps=10, dpi=128)
 

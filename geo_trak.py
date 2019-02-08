@@ -5,8 +5,8 @@ import coord_trans
 import numpy as nmp
 import space_track_api as api
 from tqdm import tqdm
-from graph import GraphFrame
 from graph import Graph
+from graph import GraphFrame
 from datetime import datetime, timedelta
 from satellite import Satellite
 from satellite import RSGS
@@ -129,13 +129,13 @@ def calc_orbits(inputs):
     #  ----------------------- Add RSGS -----------------------
     rsgs = RSGS(epoch1, epoch2)
     rsgs.set_params(lon0, lon2)
-    sat_list.append(rsgs)
 
     #  ------------------- calculate all epochs --------------------
-    for sat in tqdm(sat_list[:-1], desc='Computing Motion'):
+    for sat in tqdm(sat_list, desc='Computing Motion'):
         sat.get_motion()
         sat.get_range(rsgs)
 
+    sat_list.append(rsgs)
     #  -------------------- calculate all frames -------------------
     frame_cnt = sat_list[0].sim_cnt
     frame_list = [GraphFrame(sat_list) for n in range(frame_cnt)]
