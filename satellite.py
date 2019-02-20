@@ -10,7 +10,7 @@ class Satellite():
         self.epoch2 = epoch2
         self.type = None
 
-        self._calc_simtime()
+        self._calc_simtime(500)
 
         self.dt = 10**self.sim_factor
         self.x = nmp.zeros(self.sim_cnt)
@@ -32,6 +32,8 @@ class Satellite():
         self._get_lla()
 
         if 'R/B' in self.name:
+            self.type = 'RB'
+        if 'DEB' in self.name:
             self.type = 'RB'
 
     def get_motion(self):
@@ -66,12 +68,12 @@ class Satellite():
         self.y[n], \
         self.z[n] = coord_trans.teme2lla(self.pos, self.epoch)
 
-    def _calc_simtime(self):
+    def _calc_simtime(self, frame_cnt):
         """Return a reasonable amount of animation frames"""
         epoch_delta = (self.epoch2 - self.epoch1).total_seconds()
 
         n = 0
-        while epoch_delta > 100:      # cut sim_cnt to under 300
+        while epoch_delta > frame_cnt:
             epoch_delta = nmp.floor(epoch_delta / 10)
             n += 1
 
@@ -94,5 +96,3 @@ class RSGS(Satellite):
             self.lon[n] = lon0 + n * vel * time_increment
             self.alt[n] = 35800 + 100
             self.x[n], self.y[n], self.z[n] = coord_trans.lla2ecef(self.lat[n], self.lon[n], self.alt[n])
-
-

@@ -113,7 +113,7 @@ def calc_orbits(inputs):
     # lon2 is the global ending point; target's longitude
 
     lon2 = sat_target.lon[0]
-    lon0 = lon0 - nmp.sign(lon0)*2      # Add +/-2deg to analysis
+    #lon0 = lon0 - nmp.sign(lon0)*2      # Add +/-2deg to analysis
     lon2 = lon2 + nmp.sign(lon2)*2
 
     tmp_list = []
@@ -128,7 +128,8 @@ def calc_orbits(inputs):
 
     #  ----------------------- Add RSGS -----------------------
     rsgs = RSGS(epoch1, epoch2)
-    rsgs.set_params(lon0, lon2)
+    #rsgs.set_params(lon0, lon2)
+    rsgs.set_params(-114, lon2)
 
     #  ------------------- calculate all epochs --------------------
     for sat in tqdm(sat_list, desc='Computing Motion'):

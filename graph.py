@@ -16,16 +16,17 @@ class Graph():
         self.frame_cnt = len(self.frame_list)
 
     def _setup_fig(self):
-        gs = grs.GridSpec(1, 2, width_ratios=[5,1])
+        gs = grs.GridSpec(1, 2, width_ratios=[4,1])
         fig = plt.figure()
-        fig.set_size_inches(10, 8, True)
+        fig.set_size_inches(14, 8, True)
         ax = fig.add_subplot(gs[0], projection='3d')
-        ax2 = fig.add_subplot(gs[-1])
-        plt.axis('off')
-        plt.tight_layout(pad=0)
+        ax2 = fig.add_subplot(gs[1])
         ax.xaxis.pane.fill = False
         ax.yaxis.pane.fill = False
         ax.zaxis.pane.fill = False
+        #plt.axis('off')
+        #plt.tight_layout(pad=0)
+        plt.subplots_adjust(wspace=0.00001)
         return fig, ax, ax2
 
     def run(self):
@@ -34,10 +35,10 @@ class Graph():
                 init_func=self._init_graph,
                 func=self._update_graph,
                 frames=self.frame_cnt,
-                interval=600)
+                interval=200)
 
         plt.show()
-        #ani.save('orb3.gif', writer='imagemagick', fps=10, dpi=128)
+        #ani.save('orb3.gif', writer='imagemagick', fps=5, dpi=128)
 
     def _init_graph(self):
         self.ax.set_xlabel('Latitude, $\circ$E')
@@ -49,7 +50,10 @@ class Graph():
             self.ax.set_ylim3d(self.lon0-2, self.lon2+2)
         else:
             self.ax.set_ylim3d(self.lon0+2, self.lon2-2)
-        self.txt.axis('off')
+        #self.txt.axis('off')
+        self.txt.grid(False)
+        self.txt.set_xticks([])
+        self.txt.set_yticks([])
 
     def _update_graph(self, f):
         frame = self.frame_list[f]
@@ -70,17 +74,19 @@ class Graph():
             self.ax.text(x, y, z+10, '%s'%(name), size=5, zorder=1)
 
     def _update_text(self, frame):
-        self.txt.text(-0.1,0.92,'Epoch Start:', size=8)
-        self.txt.text(0,0.90,'%s'%(self.epoch1), size=8)
-        self.txt.text(-0.1,0.82,'Mission Time:', size=8)
-        self.txt.text(0,0.8,'%.2f hr'%(frame.mission_time), size=8)
-        self.txt.text(-0.1,0.72,'Range to Object, km:', size=8)
+        self.txt.text(0.0,0.92,'Epoch Start:', size=8)
+        self.txt.text(0.1,0.90,'%s'%(self.epoch1), size=8)
+        self.txt.text(0.0,0.87,'Mission Time:', size=8)
+        self.txt.text(0.1,0.85,'%.2f hr'%(frame.mission_time), size=8)
+        self.txt.text(0.0,0.82,'RSGS Longitude:', size=8)
+        self.txt.text(0.1,0.8,'%.2f deg'%(frame.lon[-1]), size=8)
+        self.txt.text(0.0,0.75,'Range to Object, km:', size=8)
 
         for n, r in enumerate(frame.range[0:10]):
             name = frame.name_sorted[n]
             color = frame.range_color[n]
-            self.txt.text(0, 0.7-n*0.015,'%.2f'%(r), size=8, color=color)
-            self.txt.text(0.25, 0.7-n*0.015,'%s'%(name), size=8, color=color)
+            self.txt.text(0.1, 0.73-n*0.015,'%.2f'%(r), size=8, color=color)
+            self.txt.text(0.4, 0.73-n*0.015,'%s'%(name), size=8, color=color)
 
 class GraphFrame():
 
