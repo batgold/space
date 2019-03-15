@@ -10,7 +10,7 @@ class Satellite():
         self.epoch2 = epoch2
         self.type = None
 
-        self._calc_simtime(500)
+        self._calc_simtime(20)
 
         self.dt = 10**self.sim_factor
         self.x = nmp.zeros(self.sim_cnt)
