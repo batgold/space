@@ -1,3 +1,8 @@
 #standard input
 
 > python3 geo_trak.py -71 'GOES 1 ' -n -tr 2:02
+
+
+#export html from jupyter slides
+
+> jupyter nbconvert jupyter/geo_trak_nb.ipynb --to slides --post serve
